@@ -1,4 +1,6 @@
 ---
+# Using ansible-playbook 4-12-greet.yml -e greeting="New value"
+
 - name: Pass a message on the command line
   hosts: localhost
   vars:
