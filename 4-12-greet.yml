@@ -1,0 +1,10 @@
+---
+# Idea deploying one ansible code to github code
+- name: Pass a message on the command line
+  hosts: localhost
+  vars:
+    greeting: "you didn't specify a message"
+  tasks:
+    - name: Output a message
+      debug:
+        msg: "{{ greeting }}"
