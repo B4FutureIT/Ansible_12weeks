@@ -1,0 +1,20 @@
+---
+- name: Gather running service statuses on hosts
+  hosts: all
+  gather_facts: false
+  remote_user: ansible
+
+  vars:
+    destination_path: "/home/luke/Projects/Ansible/Logs"
+
+  tasks:
+    - name: Fetch running services status
+      ansible.builtin.command: systemctl list-units --type=service --state=running
+      register: service_status
+
+    - name: Save results to a local file
+      delegate_to: localhost
+      ansible.builtin.copy:
+        content: "{{ service_status.stdout }}"
+        dest: "{{ destination_path }}/services_{{ inventory_hostname }}.txt"
+      when: service_status.stdout is defined
