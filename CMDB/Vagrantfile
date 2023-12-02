@@ -1,0 +1,18 @@
+Vagrant.configure("2") do |config|
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.driver = "kvm"
+  end
+
+  (1..5).each do |i|
+    config.vm.define "vm0#{i}" do |vm|
+      vm.vm.box = "generic/ubuntu2004" # Przykładowy obraz systemu
+      vm.vm.provider :libvirt do |libvirt|
+        libvirt.memory = 512
+        libvirt.cpus = 1
+      end
+      vm.vm.provision "ansible" do |ansible|
+        ansible.playbook = "playbook.yml" # Twoj playbook Ansible
+      end
+    end
+  end
+end
