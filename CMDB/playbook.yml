@@ -1,0 +1,15 @@
+---
+- name: Configure and Update Debian System
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - git
+          - htop
+          - mc
+          - lm-sensors
+          - vim
+        state: latest
