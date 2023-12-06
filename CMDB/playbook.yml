@@ -1,5 +1,5 @@
 ---
-- name: Configure and Update Debian System
+- name: Install required packages
   hosts: all
   become: true
 

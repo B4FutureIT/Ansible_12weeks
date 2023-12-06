@@ -108,3 +108,11 @@ ansible-cmdb infra/ > infra.html
 - Test VM connectivity using Ansible's ping module.
 - Collect data from VMs using the Ansible setup module.
 - Generate an HTML report of the infrastructure with ansible-cmdb.
+
+# Usefull tips
+
+Self-evelopment insight
+
+```bash
+$ vagrant provision # Updatting Vagrant VM configuration
+```
