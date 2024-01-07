@@ -1,0 +1,151 @@
+---
+# Starting:
+# $ bash ./scripts/init_install.sh # for ansible installation
+# $ ansible-playbook init_mgmt.yml 
+
+- hosts: localhost
+  become: true
+  gather_facts: yes
+
+  vars_files:
+    - vars/vault.yml
+  
+  vars:
+    init_userspace: true
+
+  tasks:
+    - name: "Define package manager and common packages list"
+      ansible.builtin.set_fact:
+        pkg_mgr: "{{ ansible_facts['pkg_mgr'] }}"
+        common_packages:
+          - vim
+          - screen
+          - htop
+          - sysstat
+          - git
+          - curl
+          - tree
+          - zsh
+          - htop
+          # - python3-boto #for S3 files fetching
+          # - python3-virtualenv #ansible virtual envirnoment
+          # - python3-pip
+          # - libpq-dev       #ansibl
+          # - python3-all-dev #ansible
+          # - whois           #ansible
+          # - libffi-dev      #ansible
+          
+    - name: "Update cache (Debian/Ubuntu)"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 7200
+      when: pkg_mgr == 'apt'
+      changed_when: false
+
+    - name: "Update cache (Fedora/Centos/Oracle/RedHat using dnf)"
+      ansible.builtin.dnf:
+        name: "*"
+        state: present
+      when: pkg_mgr == 'dnf'
+
+    - name: "Install common packages"
+      vars:
+        package_module: "{{ 'apt' if pkg_mgr == 'apt' else 'dnf' }}"
+      action: "{{ package_module }} name={{ item }}"
+      loop: "{{ common_packages }}"
+      when: pkg_mgr in ['apt', 'dnf']
+      ignore_errors: true
+    
+    - name: "Set locale"
+      ansible.builtin.lineinfile:
+        dest: /etc/environment
+        line: "LC_ALL=en_US.UTF-8"
+        regexp: "LC_ALL*"
+
+    - name: "set locale"
+      ansible.builtin.lineinfile:
+        dest: /etc/environment
+        line: "LANGUAGE=en_US.UTF-8"
+        regexp: "LANGUAGE*"
+
+    - name: "Create mgmt group"
+      become: true
+      group:
+        name: "{{ group }}"
+
+    - name: "Create user with not defined uid"
+      user: 
+        name: "{{ item.user }}"
+        shell: "{{ shell | default('/bin/bash') }}"
+        home: "/home/{{ item.user }}"
+        generate_ssh_key: "{{ generate_ssh_key | default(False) }}"
+        group: "{{ group }}"
+      with_items: "{{ users }}"
+    
+    - name: "Create user with not defined uid"
+      ansible.builtin.lineinfile:
+          dest: "/etc/shadow"
+          regexp: "^{{ item.user }}"
+          line: "{{ item.user }}:{{ item.password }}:{{ item.password_values }}"
+      with_items: "{{ users }}"
+
+    - name: "Init vim/screen"
+      ansible.builtin.unarchive: 
+        src: "files/my_env.tgz" 
+        dest: "/home/{{ item.user }}"
+      when: init_userspace
+      with_items: "{{ users }}"
+
+    - name: "Stat for {{ home }}/.bashrc file"
+      ansible.builtin.stat: 
+        path: "/home/{{ item.user }}/.bashrc"
+      with_items: "{{ users }}"
+    
+    - name: "Symlink to default editor"
+      ansible.builtin.file: 
+        src: "/usr/bin/vim" 
+        dest: "/etc/alternatives/editor" 
+        state: link
+
+    - name: "Fix screen 'Cant gett tty'"
+      ansible.builtin.lineinfile:
+          dest: "/home/{{ item.user }}/.bashrc"
+          line: "function screen() { /usr/bin/script -q -c \"/usr/bin/screen ${*}\" /dev/null ;}"
+      with_items: "{{ users }}"
+
+    - name: "Ensure .ssh directory exists"
+      ansible.builtin.file:
+        path: "/home/{{ item.user }}/.ssh"
+        state: directory
+        mode: '0700'
+        owner: "{{ item.user }}"
+        group: "{{ group }}"
+      with_items: "{{ users }}"
+
+    - name: "Set authorized key defining key options"
+      ansible.posix.authorized_key:
+        user: "{{ item.user }}"
+        state: present
+        # key: "{{ lookup('file', 'files/id_rsa.pub') }}"
+        key: "{{ item.ssh_public_key }}"
+      with_items: "{{ users }}"
+
+    - name: "Upload SSH public key"
+      ansible.builtin.lineinfile:
+          dest: "/home/{{ item.user }}/.ssh/authorized_keys"
+          regexp: "^{{ item.user }}"
+          line: "{{ item.ssh_public_key }}"
+      with_items: "{{ users }}"
+
+    # - name: "Change permission to the .ssh directory" 
+    #   file: 
+    #       dest: "/home/{{ item.user }}/.ssh/"
+    #       mode: '0755'
+    #       owner: "{{ item.user }}"
+    #       state: directory
+    #   with_items: "{{ users }}"
+
+    - name: "Allow sudo for user"
+      ansible.builtin.lineinfile:
+          dest: "/etc/sudoers"
+          line: "%mgmt   ALL=(ALL:ALL) NOPASSWD:ALL"
