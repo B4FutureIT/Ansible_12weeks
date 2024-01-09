@@ -84,7 +84,24 @@ Test VM Connectivity:
 ansible -i vagrant_inventory.ini all -m ping -o
 ```
 
-### 4. Data Collection with Ansible
+### 6. Ansible-cmdb installation
+Ansible-cmdb can be installed using pip, the Python package manager. There are also stand-alone packages for various Linux distributions. Alternatively, you can use brew or plain old make install.
+
+Install Ansible-cmdb through Pip:
+```bash
+sudo pip install ansible-cmdb
+```
+
+For Debian / Ubuntu systems:
+```bash
+sudo dpkg -i ansible-cmdb*.deb
+```
+For MacOS X systems:
+```
+brew install ansible-cmdb
+```
+
+### 6. Data Collection with Ansible
    - Uses Ansible's setup module to collect comprehensive data from each VM.
    - Data is stored in the `infra` directory.
 
@@ -93,7 +110,7 @@ mkdir infra/
 ansible -i vagrant_inventory.ini -m setup --tree infra/ all
 ```
 
-### 5. Infrastructure Report Generation (`infra.html`)
+### 7. Infrastructure Report Generation (`infra.html`)
 
 #### Generate Infrastructure Report:
 Generates a detailed HTML report of the infrastructure using `ansible-cmdb`.
